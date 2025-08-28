@@ -782,10 +782,17 @@
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <div>
-                        <h3>4</h3>
+                        <h3 id="interview-count">4</h3>
                         <p>Interviews</p>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Dashboard Chart -->
+            <div class="card">
+                <h2>Overview</h2>
+                <p>Visual summary of your activity</p>
+                <canvas id="dashboard-chart" height="120"></canvas>
             </div>
             
             <!-- Resume Upload Section -->
@@ -876,6 +883,7 @@
  
     </main>
     
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // Utility: format file size (used by upload and resume list)
 function formatFileSize(bytes) {
@@ -967,6 +975,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize resume count on load
     updateResumeCount();
+
+    // Render dashboard chart
+    renderOrUpdateDashboardChart();
 });
 
 // Initialize user data
@@ -1409,6 +1420,9 @@ function updateSavedJobsCount() {
     if (countElement) {
         countElement.textContent = savedJobs.length;
     }
+
+    // Update chart when saved jobs change
+    renderOrUpdateDashboardChart();
 }
 
 // Show notification
@@ -1611,6 +1625,9 @@ function updateResumeCount() {
     if (countElement) {
         countElement.textContent = resumes.length;
     }
+
+    // Update chart when resumes change
+    renderOrUpdateDashboardChart();
 }
 
 // Setup logout functionality
@@ -1643,6 +1660,63 @@ function setupLogout() {
 
 // Remove the duplicate renderSavedJobs function to avoid conflicts
 // The displaySavedJobs function is the correct implementation
+
+// ===== Dashboard Chart (Chart.js) =====
+let dashboardChart;
+
+function getDashboardCounts() {
+    const resumes = (JSON.parse(localStorage.getItem('resumes')) || []).length;
+    const applications = parseInt((document.getElementById('application-count') || {}).textContent || '0', 10);
+    const savedJobs = (JSON.parse(localStorage.getItem('savedJobs')) || []).length;
+    const interviews = parseInt((document.getElementById('interview-count') || {}).textContent || '0', 10);
+    return { resumes, applications, savedJobs, interviews };
+}
+
+function renderOrUpdateDashboardChart() {
+    const ctx = document.getElementById('dashboard-chart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    const { resumes, applications, savedJobs, interviews } = getDashboardCounts();
+    const data = [resumes, applications, savedJobs, interviews];
+    const labels = ['Resumes', 'Applications', 'Saved Jobs', 'Interviews'];
+    const backgroundColors = ['#e8f4ff', '#fff2e5', '#f0f8ff', '#e6f7ee'];
+    const borderColors = ['#0066ff', '#fd7e14', '#17a2b8', '#28a745'];
+
+    if (dashboardChart) {
+        dashboardChart.data.labels = labels;
+        dashboardChart.data.datasets[0].data = data;
+        dashboardChart.update();
+        return;
+    }
+
+    dashboardChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Counts',
+                data: data,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1,
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { enabled: true }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            }
+        }
+    });
+}
 </script>
 
 
